@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1013">
+<title>T.O.R.P 2</title>
+<script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js';document.head.appendChild(s);"></script>
+<style>
+:root{--bg:#0e1013;--card:#171a1f;--line:#262b33;--text:#eef0f3;--muted:#8b93a1;--yellow:#ffd21f;--red:#ff5a4f;--green:#3ddc84;--blue:#5fb4ff;--orange:#ff9f2e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:#0b0c0f}
+.logo{font-weight:900;font-size:22px;letter-spacing:1px;color:var(--yellow)}
+.sub{display:block;font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.stripe{height:6px;background:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,#111 12px 24px)}
+.rec{font-size:12px;font-weight:700;padding:5px 9px;border-radius:20px;background:#1d2026;color:var(--muted)}
+.rec.on{background:rgba(255,90,79,.15);color:var(--red)}
+.rec.on::first-letter{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+main{max-width:760px;margin:0 auto;padding:14px 16px}
+.tab{display:none}.tab.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid .card{margin:0}
+.lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.val{font-size:40px;font-weight:800;line-height:1.1;margin:4px 0;font-variant-numeric:tabular-nums}
+.val.mid{font-size:26px}
+.unit{font-size:14px;color:var(--muted);font-weight:600;margin-left:4px}
+.small{font-size:13px}.muted{color:var(--muted)}
+.status{display:flex;align-items:center;gap:12px}
+.dot{width:14px;height:14px;border-radius:50%;background:#444;flex:none}
+.dot.ok{background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot.wait{background:var(--yellow)}.dot.bad{background:var(--red)}.dot.demo{background:var(--blue)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button,.filebtn{font:inherit;font-weight:700;font-size:15px;border:1px solid var(--line);background:#1f232a;color:var(--text);padding:11px 14px;border-radius:11px;cursor:pointer}
+button.primary{background:var(--yellow);color:#111;border-color:var(--yellow);flex:1}
+button.danger{color:var(--red)}
+button.ghost{background:transparent}
+button.sm{padding:7px 10px;font-size:13px}
+.hidden{display:none!important}
+.dirwrap{display:flex;align-items:center;gap:10px}
+.compass{width:78px;height:78px;flex:none}
+#dirArrow{transition:transform .6s ease}
+.chart{width:100%;height:170px;display:block;margin-top:8px}
+.charthead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:flex;background:#0f1115;border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;padding:5px 9px;font-size:12px;color:var(--muted);border-radius:7px}
+.seg button.on{background:#2a2f38;color:var(--text)}
+.up{color:var(--orange)}.down{color:var(--red)}.flat{color:var(--muted)}
+.note{line-height:1.45}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(11,12,15,.96);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);backdrop-filter:blur(10px)}
+nav button{flex:1;border:0;background:transparent;border-radius:0;padding:12px 4px 10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--yellow)}
+nav svg{width:22px;height:22px}
+.sess{display:flex;flex-direction:column;gap:8px}
+.sess .name{font-weight:800;font-size:16px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#262b33;color:var(--muted);margin-left:6px;vertical-align:middle}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:4px}
+.stats b{display:block;font-size:18px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 5px;font-weight:600}
+input,select{width:100%;font:inherit;font-size:16px;background:#0f1115;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.raw{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#0f1115;border-radius:9px;padding:10px;word-break:break-all;white-space:pre-wrap;color:#cfd5de;min-height:38px}
+h2{font-size:17px;margin:0 0 4px}
+input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--yellow);margin-top:10px}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;font-size:13px}
+.readout b{display:block;font-size:17px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2a2f38;color:var(--text);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;max-width:90%;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+.filebtn{display:inline-block}
+.filebtn input{display:none}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><span class="logo">T.O.R.P 2</span><span class="sub">Team Twister storm probe</span></div>
+  <div id="rec" class="rec">● Not recording</div>
+</header>
+<div class="stripe"></div>
+
+<main>
+<!-- LIVE -->
+<section id="tab-live" class="tab active">
+  <div class="card status">
+    <span id="dot" class="dot"></span>
+    <div><div id="statusText" style="font-weight:700">Not connected</div><div id="statusSub" class="muted small">Tap "Connect to probe" to start</div></div>
+  </div>
+  <div class="btnrow">
+    <button id="btnConnect" class="primary">Connect to probe</button>
+    <button id="btnStop" class="hidden">Stop</button>
+    <button id="btnNew" class="ghost">New session</button>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="lbl">Wind speed</div>
+      <div class="val"><span id="vWind">--</span><span class="unit">km/h</span></div>
+      <div class="muted small">Peak <span id="vPeak">--</span> · <span id="vWindMs">--</span> m/s</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Pressure</div>
+      <div class="val"><span id="vPres">--</span><span class="unit">hPa</span></div>
+      <div class="small flat" id="vTrend">Change (1 min): --</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Wind from</div>
+      <div class="dirwrap">
+        <svg viewBox="0 0 100 100" class="compass">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#2a2f37" stroke-width="3"/>
+          <g fill="#8b93a1" font-size="12" font-weight="700" text-anchor="middle" font-family="system-ui">
+            <text x="50" y="16">N</text><text x="88" y="54">E</text><text x="50" y="94">S</text><text x="12" y="54">W</text>
+          </g>
+          <g id="dirArrow" style="transform-origin:50px 50px">
+            <path d="M50 12 L59 34 L50 29 L41 34 Z" fill="#ffd21f"/>
+            <line x1="50" y1="30" x2="50" y2="80" stroke="#ffd21f" stroke-width="3" stroke-linecap="round"/>
+          </g>
+        </svg>
+        <div><div class="val mid"><span id="vDir">--</span><span class="unit">°</span></div><div id="vDirTxt" class="muted small">--</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="lbl">Temperature</div>
+      <div class="val mid"><span id="vTemp">--</span><span class="unit">°C</span></div>
+      <div class="lbl" style="margin-top:8px">Humidity</div>
+      <div class="val mid"><span id="vHum">--</span><span class="unit">%</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="charthead"><span class="lbl">Wind speed (km/h)</span>
+      <div class="seg" id="winSeg"><button data-w="2">2m</button><button data-w="5">5m</button><button data-w="15">15m</button><button data-w="60">1h</button></div>
+    </div>
+    <canvas id="cWind" class="chart"></canvas>
+  </div>
+  <div class="card">
+    <span class="lbl">Pressure (hPa)</span>
+    <canvas id="cPres" class="chart"></canvas>
+  </div>
+  <p class="muted small note">Every reading is saved on this phone automatically while this page is open. The screen is kept awake while connected, but if you switch apps or lock the phone, recording pauses until you come back. The probe's own logger keeps the full record either way.</p>
+</section>
+
+<!-- LOG -->
+<section id="tab-log" class="tab">
+  <div class="card">
+    <h2>Saved sessions</h2>
+    <div class="muted small">Everything this phone has recorded. Download a CSV to keep a copy or open it in a spreadsheet.</div>
+  </div>
+  <div id="logList"></div>
+</section>
+
+<!-- REPLAY -->
+<section id="tab-replay" class="tab">
+  <div class="card">
+    <h2>Chase replay</h2>
+    <label for="repSel">Pick a saved session</label>
+    <select id="repSel"></select>
+    <div style="margin-top:10px" class="btnrow">
+      <label class="filebtn" style="margin:0">Open a data file…<input type="file" id="fileIn" accept=".csv,.txt,text/csv,text/plain"></label>
+    </div>
+    <div class="muted small">Works with files from this site, and with any CSV that has a time column plus wind / pressure columns.</div>
+  </div>
+  <div id="repBody" class="hidden">
+    <div class="card">
+      <h2 id="repName">—</h2>
+      <div class="stats" id="repStats"></div>
+    </div>
+    <div class="card">
+      <span class="lbl">Scrub through the chase</span>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <div class="btnrow" style="margin:8px 0 0"><button id="btnPlay" class="sm">▶ Play 10×</button></div>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div class="card"><span class="lbl">Wind speed (km/h)</span><canvas id="rWind" class="chart"></canvas></div>
+    <div class="card"><span class="lbl">Pressure (hPa)</span><canvas id="rPres" class="chart"></canvas></div>
+    <div class="card"><span class="lbl">Wind direction (°)</span><canvas id="rDir" class="chart"></canvas></div>
+    <div class="card"><span class="lbl">Temperature (°C)</span><canvas id="rTemp" class="chart"></canvas></div>
+    <div class="card"><span class="lbl">Humidity (%)</span><canvas id="rHum" class="chart"></canvas></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section id="tab-settings" class="tab">
+  <div class="card">
+    <h2>Connection</h2>
+    <div class="muted small">From your HiveMQ Cloud cluster page. These are saved on this phone only — they are never in the website's code.</div>
+    <label>Cluster address</label>
+    <input data-k="url" placeholder="abc123.s1.eu.hivemq.cloud" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="two">
+      <div><label>Username</label><input data-k="user" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div><label>Password</label><input data-k="pass" type="password"></div>
+    </div>
+    <label>Topic</label>
+    <input data-k="topic" placeholder="torp2/#" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div class="card">
+    <h2>Last message from the probe</h2>
+    <div class="muted small">Use this to check the names below match what the probe actually sends.</div>
+    <div id="rawMsg" class="raw" style="margin-top:8px">Nothing received yet.</div>
+  </div>
+
+  <div class="card">
+    <h2>Data names</h2>
+    <div class="muted small">The name each reading has in the probe's messages.</div>
+    <div class="two">
+      <div><label>Wind speed</label><input data-k="k_wind" autocapitalize="off" autocorrect="off"></div>
+      <div><label>Wind direction</label><input data-k="k_dir" autocapitalize="off" autocorrect="off"></div>
+      <div><label>Pressure</label><input data-k="k_pressure" autocapitalize="off" autocorrect="off"></div>
+      <div><label>Temperature</label><input data-k="k_temp" autocapitalize="off" autocorrect="off"></div>
+      <div><label>Humidity</label><input data-k="k_hum" autocapitalize="off" autocorrect="off"></div>
+      <div><label>Wind speed arrives in</label><select data-k="windUnit"><option value="ms">m/s</option><option value="kmh">km/h</option><option value="kn">knots</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Number fixes</h2>
+    <div class="muted small">Some sensors send numbers ×10 (e.g. 10125 instead of 1012.5). If so, put 0.1 here.</div>
+    <div class="two">
+      <div><label>Wind speed ×</label><input data-k="m_wind" inputmode="decimal"></div>
+      <div><label>Direction ×</label><input data-k="m_dir" inputmode="decimal"></div>
+      <div><label>Pressure ×</label><input data-k="m_pressure" inputmode="decimal"></div>
+      <div><label>Temperature ×</label><input data-k="m_temp" inputmode="decimal"></div>
+      <div><label>Humidity ×</label><input data-k="m_hum" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="btnrow"><button id="btnSave" class="primary">Save settings</button></div>
+  <div class="card">
+    <h2>Demo mode</h2>
+    <div class="muted small">Plays a fake tornado intercept so you can see everything working before the probe is built. Demo sessions are labelled in the log.</div>
+    <div class="btnrow" style="margin:10px 0 0"><button id="btnDemo">Start demo</button></div>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button data-tab="live" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Live</button>
+  <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Log</button>
+  <button data-tab="replay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>Replay</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+</nav>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const FIELDS=['wind','dir','pressure','temp','hum'];
+const DEF={url:'',user:'',pass:'',topic:'torp2/#',k_wind:'wind',k_dir:'dir',k_pressure:'pressure',k_temp:'temp',k_hum:'hum',m_wind:'1',m_dir:'1',m_pressure:'1',m_temp:'1',m_hum:'1',windUnit:'ms',win:5};
+const MAXLIVE=7200; // 2 hours on screen
+let S=loadSettings();
+
+/* ---------- helpers ---------- */
+function loadSettings(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem('torp2-settings')||'{}'))}catch(e){return Object.assign({},DEF)}}
+function saveSettings(){try{localStorage.setItem('torp2-settings',JSON.stringify(S))}catch(e){}}
+const pad=n=>String(n).padStart(2,'0');
+function hms(t){const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
+function ymd(t){const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function nice(t){return new Date(t).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+' '+hms(t)}
+function dur(ms){let s=Math.max(0,Math.round(ms/1000));const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;return h?h+'h '+pad(m)+'m':m+'m '+pad(s)+'s'}
+function fmtT(t,rel){if(rel){let s=Math.round(t/1000);const m=Math.floor(s/60);return m+':'+pad(s%60)}return hms(t)}
+function compass(d){return['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(d/22.5)%16]}
+function f(v,d){return v==null||!isFinite(v)?'--':Number(v).toFixed(d)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200)}
+
+/* ---------- storage (IndexedDB) ---------- */
+let db=null;
+function openDB(){return new Promise(res=>{try{const r=indexedDB.open('torp2',1);
+  r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('sessions',{keyPath:'id',autoIncrement:true});const s=d.createObjectStore('readings',{keyPath:'k',autoIncrement:true});s.createIndex('session','s')};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}})}
+function dbPut(store,obj){return new Promise((res,rej)=>{if(!db)return rej('nodb');const tx=db.transaction(store,'readwrite');const q=tx.objectStore(store).put(obj);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+function dbAll(store){return new Promise(res=>{if(!db)return res([]);const q=db.transaction(store).objectStore(store).getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}
+function dbGet(store,id){return new Promise(res=>{if(!db)return res(null);const q=db.transaction(store).objectStore(store).get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}
+function dbRows(id){return new Promise(res=>{if(!db)return res([]);const q=db.transaction('readings').objectStore('readings').index('session').getAll(IDBKeyRange.only(id));q.onsuccess=()=>res((q.result||[]).sort((a,b)=>a.t-b.t));q.onerror=()=>res([])})}
+function dbDelSession(id){return new Promise(res=>{if(!db)return res();const tx=db.transaction(['sessions','readings'],'readwrite');tx.objectStore('sessions').delete(id);
+  const c=tx.objectStore('readings').index('session').openCursor(IDBKeyRange.only(id));c.onsuccess=e=>{const cur=e.target.result;if(cur){cur.delete();cur.continue()}};tx.oncomplete=()=>res();tx.onerror=()=>res()})}
+function dbAddRows(sid,rows){return new Promise(res=>{const tx=db.transaction('readings','readwrite');const st=tx.objectStore('readings');for(const r of rows)st.add(Object.assign({s:sid},r));tx.oncomplete=()=>res();tx.onerror=()=>res()})}
+
+/* ---------- live state ---------- */
+let mode='off', connState='', lastErr='', client=null, demoTimer=null;
+let live=[], latest={}, lastRowAt=0, cur=null;
+let session=null, sessionP=null;
+
+function resetSession(){session=null;sessionP=null;live=[];latest={};cur=null;lastRowAt=0;updateRec();renderLive()}
+function ensureSession(){
+  if(!sessionP){
+    const now=Date.now();
+    const s={name:(mode==='demo'?'Demo ':'Chase ')+nice(now),start:now,end:now,rows:0,peak:null,minP:null,source:mode==='demo'?'demo':'probe'};
+    sessionP=(db?dbPut('sessions',s).then(id=>{s.id=id;return s}).catch(()=>s):Promise.resolve(s)).then(x=>{session=x;return x});
+  }
+  return sessionP;
+}
+function record(r){
+  ensureSession().then(s=>{
+    s.end=r.t;s.rows++;
+    if(r.wind!=null)s.peak=s.peak==null?r.wind:Math.max(s.peak,r.wind);
+    if(r.pressure!=null)s.minP=s.minP==null?r.pressure:Math.min(s.minP,r.pressure);
+    if(db&&s.id!=null){try{const tx=db.transaction(['readings','sessions'],'readwrite');tx.objectStore('readings').add(Object.assign({s:s.id},r));tx.objectStore('sessions').put(s)}catch(e){}}
+    updateRec();
+  });
+}
+function addRow(r){
+  live.push(r);if(live.length>MAXLIVE)live.splice(0,live.length-MAXLIVE);
+  Object.assign(latest,r);lastRowAt=Date.now();
+  record(r);scheduleRender();
+}
+
+/* ---------- reading what the probe sends ---------- */
+function num(v){if(typeof v==='number')return isFinite(v)?v:null;if(typeof v==='string'){const m=v.match(/-?\d+(\.\d+)?/);return m?parseFloat(m[0]):null}return null}
+function flatten(o,pre,out){for(const k in o){const v=o[k],p=pre?pre+'.'+k:k;if(v&&typeof v==='object'&&!Array.isArray(v))flatten(v,p,out);else out[p]=Array.isArray(v)?v[0]:v}}
+function extract(topic,data,raw){
+  const out={};
+  if(data&&typeof data==='object'){
+    const flat={};flatten(data,'',flat);
+    for(const fl of FIELDS){const key=String(S['k_'+fl]||'').trim().toLowerCase();if(!key)continue;
+      for(const p in flat){const pl=p.toLowerCase();if(pl===key||pl.split('.').pop()===key){const v=num(flat[p]);if(v!=null){out[fl]=v;break}}}}
+  }else{
+    const v=num(data!=null?data:raw);
+    if(v!=null){const last=topic.split('/').pop().toLowerCase();for(const fl of FIELDS)if(last===String(S['k_'+fl]).trim().toLowerCase())out[fl]=v}
+  }
+  return out;
+}
+function convert(v){
+  const o={};
+  for(const fl in v){let x=v[fl]*(parseFloat(S['m_'+fl])||1);
+    if(fl==='wind')x=S.windUnit==='ms'?x*3.6:S.windUnit==='kn'?x*1.852:x;
+    if(fl==='dir')x=((x%360)+360)%360;
+    o[fl]=x}
+  return o;
+}
+function handle(topic,str){
+  let data=null;try{data=JSON.parse(str)}catch(e){}
+  const items=Array.isArray(data)?data:[data];
+  for(const it of items){const v=extract(topic,it,str);if(Object.keys(v).length)ingest(convert(v))}
+}
+// combine everything that arrives within the same second into one row
+function ingest(vals){const sec=Math.floor(Date.now()/1000);if(cur&&cur.sec!==sec)flush();if(!cur)cur={sec};Object.assign(cur,vals)}
+function round(r){const o={t:r.t};if(r.wind!=null)o.wind=+r.wind.toFixed(1);if(r.dir!=null)o.dir=Math.round(r.dir)%360;if(r.pressure!=null)o.pressure=+r.pressure.toFixed(2);if(r.temp!=null)o.temp=+r.temp.toFixed(2);if(r.hum!=null)o.hum=+r.hum.toFixed(1);return o}
+function flush(){const c=cur;cur=null;const r={t:c.sec*1000};for(const fl of FIELDS)if(c[fl]!=null)r[fl]=c[fl];addRow(round(r))}
+
+/* ---------- connecting ---------- */
+function brokerURL(u){u=(u||'').trim();if(!u)return'';if(!/^wss?:\/\//i.test(u)){u=u.replace(/^[a-z]+:\/\//i,'').replace(/\/.*$/,'');if(!/:\d+$/.test(u))u+=':8884';u='wss://'+u+'/mqtt'}return u}
+function stopAll(){
+  if(client){try{client.end(true)}catch(e){}client=null}
+  if(demoTimer){clearInterval(demoTimer);demoTimer=null}
+  if(cur)flush();
+  mode='off';connState='';keepAwake(false);setStatus();
+}
+function connect(){
+  const url=brokerURL(S.url);
+  if(!url){toast('Add your HiveMQ cluster address in Settings first');showTab('settings');return}
+  if(typeof mqtt==='undefined'){toast("Couldn't load the connection part of the site — check your internet and reload");return}
+  stopAll();resetSession();
+  mode='mqtt';connState='connecting';lastErr='';setStatus();
+  try{
+    client=mqtt.connect(url,{username:S.user||undefined,password:S.pass||undefined,clientId:'torp2-web-'+Math.random().toString(16).slice(2,10),reconnectPeriod:4000,connectTimeout:12000,clean:true,protocolVersion:4});
+  }catch(e){connState='error';lastErr=e.message;setStatus();return}
+  client.on('connect',()=>{connState='connected';lastErr='';client.subscribe(S.topic||'#');setStatus()});
+  client.on('reconnect',()=>{connState='reconnecting';setStatus()});
+  client.on('offline',()=>{connState='reconnecting';setStatus()});
+  client.on('error',e=>{lastErr=(e&&e.message)||'error';connState='error';setStatus()});
+  client.on('message',(topic,buf)=>{const str=buf.toString();$('#rawMsg').textContent=topic+'\n'+str.slice(0,800);handle(topic,str)});
+  keepAwake(true);
+}
+let wl=null;
+async function keepAwake(on){try{if(on&&'wakeLock' in navigator){if(!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}else if(!on&&wl){await wl.release();wl=null}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&mode!=='off')keepAwake(true)});
+
+/* ---------- demo: a fake tornado intercept ---------- */
+function startDemo(){
+  stopAll();mode='demo';resetSession();setStatus();keepAwake(true);showTab('live');
+  const t0=Date.now();
+  demoTimer=setInterval(()=>{
+    const k=((Date.now()-t0)/1000)%180, n=()=>Math.random()-.5;
+    const core=Math.exp(-((k-90)**2)/(2*7*7)), tight=Math.exp(-((k-90)**2)/(2*4*4));
+    addRow(round({t:Math.floor(Date.now()/1000)*1000,
+      wind:Math.max(0,22+9*Math.sin(k/6)+n()*7+140*core*(1+.2*n())),
+      dir:45+225/(1+Math.exp(-(k-90)/3))+n()*10,
+      pressure:1006.4-.004*k-21*tight+n()*.15,
+      temp:25.5-3*core+n()*.1,
+      hum:76+16*core+n()*.6}));
+  },1000);
+}
+
+/* ---------- status + live display ---------- */
+function setStatus(){
+  const dot=$('#dot'),t=$('#statusText'),s=$('#statusSub');
+  const age=lastRowAt?(Date.now()-lastRowAt)/1000:Infinity;
+  dot.className='dot';
+  if(mode==='off'){t.textContent='Not connected';s.textContent=lastRowAt?'Stopped. Your session is saved in the Log tab.':'Tap "Connect to probe" to start';}
+  else if(mode==='demo'){dot.classList.add('demo');t.textContent='Demo mode';s.textContent='Fake intercept data — tap Stop to end'}
+  else if(connState==='connected'){
+    if(age<5){dot.classList.add('ok');t.textContent='Probe online';s.textContent='Last reading '+(age<1.5?'just now':Math.round(age)+'s ago')}
+    else{dot.classList.add('wait');t.textContent='Connected — waiting for the probe';s.textContent=lastRowAt?'No reading for '+dur(age*1000):'Nothing received yet. Is the probe powered on?'}
+  }
+  else if(connState==='error'){dot.classList.add('bad');t.textContent='Connection problem';s.textContent=friendlyErr(lastErr)}
+  else{dot.classList.add('wait');t.textContent=connState==='connecting'?'Connecting…':'Reconnecting…';s.textContent='Check phone signal if this keeps happening'}
+  $('#btnConnect').classList.toggle('hidden',mode!=='off');
+  $('#btnStop').classList.toggle('hidden',mode==='off');
+}
+function friendlyErr(m){m=String(m||'');if(/not authori|bad user|password/i.test(m))return'Username or password is wrong (check Settings)';if(/websocket|ENOTFOUND|getaddrinfo/i.test(m))return'Couldn\'t reach the cluster — check the address in Settings';return m||'Retrying…'}
+function updateRec(){const r=$('#rec');if(mode!=='off'&&session){r.className='rec on';r.textContent='● REC '+session.rows.toLocaleString()+' rows'}else{r.className='rec';r.textContent='● Not recording'}}
+
+let rq=false;function scheduleRender(){if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;renderLive()})}}
+function renderLive(){
+  const L=latest;
+  $('#vWind').textContent=f(L.wind,0);$('#vWindMs').textContent=f(L.wind!=null?L.wind/3.6:null,1);
+  $('#vPeak').textContent=session&&session.peak!=null?f(session.peak,0)+' km/h':'--';
+  $('#vPres').textContent=f(L.pressure,1);
+  $('#vTemp').textContent=f(L.temp,1);$('#vHum').textContent=f(L.hum,0);
+  if(L.dir!=null){$('#vDir').textContent=f(L.dir,0);$('#vDirTxt').textContent=compass(L.dir);$('#dirArrow').style.transform='rotate('+L.dir+'deg)'}
+  else{$('#vDir').textContent='--';$('#vDirTxt').textContent='--'}
+  // pressure change over the last minute
+  const tr=$('#vTrend');let old=null;
+  if(L.pressure!=null){for(let i=live.length-1;i>=0;i--){if(live[i].pressure!=null&&live[i].t<=lastRowAt-60000){old=live[i];break}}}
+  if(old){const d=L.pressure-old.pressure;tr.textContent='Change (1 min): '+(d>0?'+':'')+d.toFixed(1)+' hPa';tr.className='small '+(d<=-1?'down':d>=1?'up':'flat')}
+  else{tr.textContent='Change (1 min): --';tr.className='small flat'}
+  if(!$('#tab-live').classList.contains('active'))return;
+  const t1=Date.now(),t0=t1-S.win*60000;
+  drawChart($('#cWind'),live,'wind',{color:'#ffd21f',t0,t1,dec:0,minSpan:10,floor:0});
+  drawChart($('#cPres'),live,'pressure',{color:'#5fb4ff',t0,t1,dec:1,minSpan:2});
+}
+setInterval(()=>{if(cur&&Math.floor(Date.now()/1000)>cur.sec)flush()},250);
+setInterval(()=>{setStatus();if(mode!=='off')renderLive()},1000);
+
+/* ---------- charts ---------- */
+function drawChart(cv,rows,key,o){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  c.font='11px -apple-system,system-ui,sans-serif';
+  const Lp=42,Rp=8,Tp=8,Bp=18,pw=w-Lp-Rp,ph=h-Tp-Bp;
+  let mn=Infinity,mx=-Infinity,n=0;
+  for(const r of rows){const v=r[key];if(v==null||r.t<o.t0||r.t>o.t1)continue;n++;if(v<mn)mn=v;if(v>mx)mx=v}
+  c.fillStyle='#8b93a1';
+  if(!n){c.textAlign='center';c.textBaseline='middle';c.fillText('No data yet',w/2,h/2);return}
+  if(o.fixed){mn=o.fixed[0];mx=o.fixed[1]}
+  else{const span=Math.max(mx-mn,o.minSpan||1),mid=(mx+mn)/2;mn=mid-span*.56;mx=mid+span*.56;if(o.floor!=null&&mn<o.floor){mx+=o.floor-mn;mn=o.floor}}
+  const T=o.t1-o.t0||1,X=t=>Lp+(t-o.t0)/T*pw,Y=v=>Tp+(1-(v-mn)/(mx-mn))*ph;
+  c.strokeStyle='#232831';c.lineWidth=1;c.textAlign='right';c.textBaseline='middle';
+  for(let i=0;i<=4;i++){const v=mn+(mx-mn)*i/4,y=Y(v);c.beginPath();c.moveTo(Lp,y);c.lineTo(w-Rp,y);c.stroke();c.fillText(v.toFixed(o.dec||0),Lp-6,y)}
+  c.textBaseline='alphabetic';c.textAlign='left';c.fillText(fmtT(o.t0,o.rel),Lp,h-3);c.textAlign='right';c.fillText(fmtT(o.t1,o.rel),w-Rp,h-3);
+  c.save();c.beginPath();c.rect(Lp,Tp-2,pw,ph+4);c.clip();
+  c.strokeStyle=o.color;c.lineWidth=o.dots?0:2;c.lineJoin='round';c.fillStyle=o.color;
+  if(o.dots){for(const r of rows){const v=r[key];if(v==null||r.t<o.t0||r.t>o.t1)continue;c.fillRect(X(r.t)-1,Y(v)-1,2.2,2.2)}}
+  else{c.beginPath();let prev=null;
+    for(const r of rows){const v=r[key];if(v==null||r.t<o.t0||r.t>o.t1)continue;const x=X(r.t),y=Y(v);if(prev==null||r.t-prev>5000)c.moveTo(x,y);else c.lineTo(x,y);prev=r.t}
+    c.stroke();
+    if(n===1){for(const r of rows)if(r[key]!=null&&r.t>=o.t0){c.beginPath();c.arc(X(r.t),Y(r[key]),3,0,7);c.fill();break}}}
+  c.restore();
+  if(o.cursor!=null){const x=X(o.cursor);c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=1.5;c.beginPath();c.moveTo(x,Tp);c.lineTo(x,Tp+ph);c.stroke()}
+}
+
+/* ---------- log tab ---------- */
+async function renderLog(){
+  const box=$('#logList');
+  if(!db){box.innerHTML='<div class="card muted small">This phone isn\'t letting the site save data (private browsing can cause this). Recording will only last while the page is open.</div>';return}
+  const ss=(await dbAll('sessions')).sort((a,b)=>b.start-a.start);
+  if(!ss.length){box.innerHTML='<div class="card muted small">Nothing saved yet. Connect to the probe or try Demo mode in Settings.</div>';return}
+  box.innerHTML=ss.map(s=>`<div class="card sess">
+    <div><span class="name">${esc(s.name)}</span>${s.source!=='probe'?`<span class="tag">${s.source==='demo'?'DEMO':'FILE'}</span>`:''}</div>
+    <div class="stats small">
+      <div><span class="muted">Length</span><b>${s.rel?'—':dur(s.end-s.start)}</b></div>
+      <div><span class="muted">Readings</span><b>${(s.rows||0).toLocaleString()}</b></div>
+      <div><span class="muted">Peak wind</span><b>${s.peak!=null?f(s.peak,0)+' km/h':'--'}</b></div>
+      <div><span class="muted">Lowest pressure</span><b>${s.minP!=null?f(s.minP,1)+' hPa':'--'}</b></div>
+    </div>
+    <div class="btnrow" style="margin:4px 0 0">
+      <button class="sm" data-act="replay" data-id="${s.id}">Replay</button>
+      <button class="sm" data-act="csv" data-id="${s.id}">Download CSV</button>
+      <button class="sm danger" data-act="del" data-id="${s.id}">Delete</button>
+    </div></div>`).join('');
+}
+$('#logList').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;const id=+b.dataset.id;
+  if(b.dataset.act==='replay'){showTab('replay');$('#repSel').value=String(id);loadSession(id)}
+  if(b.dataset.act==='csv'){const s=await dbGet('sessions',id);const rows=await dbRows(id);download('TORP2_'+(s.rel?'file':ymd(s.start)+'_'+hms(s.start).replace(/:/g,''))+'.csv',toCSV(rows,s.rel))}
+  if(b.dataset.act==='del'){if(session&&session.id===id&&mode!=='off'){toast('Stop recording before deleting this one');return}if(confirm('Delete this session for good?')){await dbDelSession(id);renderLog();fillRepSel()}}
+});
+function toCSV(rows,rel){
+  const out=['time_iso,local_time,wind_kmh,wind_ms,dir_deg,pressure_hpa,temp_c,humidity_pct'];
+  const v=x=>x==null?'':x;
+  for(const r of rows){out.push([rel?(r.t/1000):new Date(r.t).toISOString(),rel?fmtT(r.t,true):ymd(r.t)+' '+hms(r.t),v(r.wind),r.wind!=null?(r.wind/3.6).toFixed(2):'',v(r.dir),v(r.pressure),v(r.temp),v(r.hum)].join(','))}
+  return out.join('\n');
+}
+function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}
+
+/* ---------- replay tab ---------- */
+let rep={rows:[],rel:false,cursor:null,playing:null};
+async function fillRepSel(){
+  const sel=$('#repSel'),keep=sel.value;
+  const ss=(await dbAll('sessions')).sort((a,b)=>b.start-a.start);
+  sel.innerHTML='<option value="">— choose —</option>'+ss.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if(keep)sel.value=keep;
+}
+$('#repSel').addEventListener('change',e=>{if(e.target.value)loadSession(+e.target.value)});
+async function loadSession(id){const s=await dbGet('sessions',id);if(!s)return;const rows=await dbRows(id);openReplay(rows,s.name,!!s.rel)}
+function openReplay(rows,name,rel){
+  stopPlay();rep={rows,rel,cursor:null,playing:null};
+  $('#repBody').classList.toggle('hidden',!rows.length);
+  if(!rows.length){toast('That session has no readings');return}
+  $('#repName').textContent=name;
+  const t0=rows[0].t,t1=rows[rows.length-1].t;
+  let pk=null,pkT=0,mp=null,mpT=0,runMax=-Infinity,drop=0;
+  for(const r of rows){
+    if(r.wind!=null&&(pk==null||r.wind>pk)){pk=r.wind;pkT=r.t}
+    if(r.pressure!=null){if(mp==null||r.pressure<mp){mp=r.pressure;mpT=r.t}runMax=Math.max(runMax,r.pressure);drop=Math.max(drop,runMax-r.pressure)}
+  }
+  $('#repStats').innerHTML=`
+    <div><span class="muted small">Length</span><b>${dur(t1-t0)}</b></div>
+    <div><span class="muted small">Readings</span><b>${rows.length.toLocaleString()}</b></div>
+    <div><span class="muted small">Peak wind</span><b>${pk!=null?f(pk,0)+' km/h':'--'}</b><span class="muted small">${pk!=null?'at '+fmtT(pkT,rel):''}</span></div>
+    <div><span class="muted small">Lowest pressure</span><b>${mp!=null?f(mp,1)+' hPa':'--'}</b><span class="muted small">${mp!=null?'at '+fmtT(mpT,rel):''}</span></div>
+    <div><span class="muted small">Biggest pressure drop</span><b>${mp!=null?f(drop,1)+' hPa':'--'}</b></div>`;
+  $('#scrub').value=0;rep.cursor=t0;drawReplay();
+}
+function nearest(rows,t){let lo=0,hi=rows.length-1;while(lo<hi){const m=(lo+hi)>>1;if(rows[m].t<t)lo=m+1;else hi=m}if(lo>0&&Math.abs(rows[lo-1].t-t)<Math.abs(rows[lo].t-t))lo--;return rows[lo]}
+function drawReplay(){
+  const R=rep.rows;if(!R.length)return;
+  const t0=R[0].t,t1=R[R.length-1].t,base={t0,t1,rel:rep.rel,cursor:rep.cursor};
+  drawChart($('#rWind'),R,'wind',Object.assign({color:'#ffd21f',dec:0,minSpan:10,floor:0},base));
+  drawChart($('#rPres'),R,'pressure',Object.assign({color:'#5fb4ff',dec:1,minSpan:2},base));
+  drawChart($('#rDir'),R,'dir',Object.assign({color:'#c49bff',dec:0,fixed:[0,360],dots:true},base));
+  drawChart($('#rTemp'),R,'temp',Object.assign({color:'#ff9f2e',dec:1,minSpan:2},base));
+  drawChart($('#rHum'),R,'hum',Object.assign({color:'#3ddc84',dec:0,minSpan:5},base));
+  const r=nearest(R,rep.cursor);
+  $('#readout').innerHTML=`<div><span class="muted">Time</span><b>${fmtT(r.t,rep.rel)}</b></div><div><span class="muted">Wind</span><b>${f(r.wind,0)} km/h</b></div><div><span class="muted">From</span><b>${r.dir!=null?f(r.dir,0)+'° '+compass(r.dir):'--'}</b></div><div><span class="muted">Pressure</span><b>${f(r.pressure,1)}</b></div><div><span class="muted">Temp</span><b>${f(r.temp,1)}°</b></div><div><span class="muted">Humidity</span><b>${f(r.hum,0)}%</b></div>`;
+}
+$('#scrub').addEventListener('input',e=>{const R=rep.rows;if(!R.length)return;const t0=R[0].t,t1=R[R.length-1].t;rep.cursor=t0+(t1-t0)*e.target.value/1000;drawReplay()});
+function stopPlay(){if(rep.playing){clearInterval(rep.playing);rep.playing=null}$('#btnPlay').textContent='▶ Play 10×'}
+$('#btnPlay').addEventListener('click',()=>{
+  const R=rep.rows;if(!R.length)return;
+  if(rep.playing){stopPlay();return}
+  const t0=R[0].t,t1=R[R.length-1].t;if(rep.cursor>=t1)rep.cursor=t0;
+  $('#btnPlay').textContent='❚❚ Pause';
+  rep.playing=setInterval(()=>{rep.cursor+=1000;if(rep.cursor>=t1){rep.cursor=t1;stopPlay()}$('#scrub').value=Math.round((rep.cursor-t0)/(t1-t0||1)*1000);drawReplay()},100);
+});
+
+/* ---------- importing a file ---------- */
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2)throw new Error('The file looks empty');
+  const h0=lines[0],sep=h0.includes(',')?',':h0.includes('\t')?'\t':h0.includes(';')?';':',';
+  const head=h0.split(sep).map(s=>s.trim().replace(/^"|"$/g,'').toLowerCase());
+  const find=(re,not)=>head.findIndex(h=>re.test(h)&&!(not&&not.test(h)));
+  const iT=find(/time|date|stamp|^ts$|^t$/);
+  const windCols=head.map((h,i)=>/wind|speed|spd/.test(h)&&!/dir|deg/.test(h)?i:-1).filter(i=>i>=0);
+  const iW=windCols.find(i=>/km/.test(head[i]))??windCols[0]??-1;
+  const wMul=iW<0?1:/km/.test(head[iW])?1:/kn|kt/.test(head[iW])?1.852:/ms|m\/s|m_s|mps/.test(head[iW])?3.6:1;
+  const iD=find(/dir|deg|bearing/),iP=find(/press|hpa|baro|mbar/),iTe=find(/temp/),iH=find(/hum|^rh/);
+  if(iW<0&&iP<0&&iD<0&&iTe<0&&iH<0)throw new Error("Couldn't find wind or pressure columns in that file");
+  const rows=[];let rel=false;
+  for(let n=1;n<lines.length;n++){
+    const c=lines[n].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    let t=NaN;
+    if(iT>=0){const v=c[iT];if(/^-?\d+(\.\d+)?$/.test(v)){const x=parseFloat(v);if(x>1e12)t=x;else if(x>1e9)t=x*1000;else{t=x*1000;rel=true}}else t=Date.parse(v.includes('T')?v:v.replace(' ','T'))}
+    if(!isFinite(t)){t=(n-1)*1000;rel=true}
+    const g=i=>{if(i<0)return null;const x=num(c[i]);return x};
+    const r={t};let any=false;
+    const w=g(iW);if(w!=null){r.wind=w*wMul;any=true}
+    for(const [k,i] of [['dir',iD],['pressure',iP],['temp',iTe],['hum',iH]]){const x=g(i);if(x!=null){r[k]=x;any=true}}
+    if(any)rows.push(round(r));
+  }
+  rows.sort((a,b)=>a.t-b.t);
+  if(!rows.length)throw new Error('No readings found in that file');
+  return{rows,rel};
+}
+$('#fileIn').addEventListener('change',async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  try{
+    const {rows,rel}=parseCSV(await file.text());
+    let peak=null,minP=null;for(const r of rows){if(r.wind!=null)peak=peak==null?r.wind:Math.max(peak,r.wind);if(r.pressure!=null)minP=minP==null?r.pressure:Math.min(minP,r.pressure)}
+    const s={name:file.name,start:rel?Date.now():rows[0].t,end:rel?Date.now():rows[rows.length-1].t,rows:rows.length,peak,minP,source:'file',rel};
+    if(db){s.id=await dbPut('sessions',s);await dbAddRows(s.id,rows);await fillRepSel();$('#repSel').value=String(s.id)}
+    openReplay(rows,file.name,rel);toast('Loaded '+rows.length.toLocaleString()+' readings');
+  }catch(err){toast(err.message||'Couldn\'t read that file')}
+});
+
+/* ---------- settings ---------- */
+function fillSettings(){document.querySelectorAll('[data-k]').forEach(el=>{el.value=S[el.dataset.k]??''})}
+$('#btnSave').addEventListener('click',()=>{
+  document.querySelectorAll('[data-k]').forEach(el=>{S[el.dataset.k]=el.value.trim()});
+  for(const fl of FIELDS)if(!(parseFloat(S['m_'+fl])>0))S['m_'+fl]='1';
+  if(!S.topic)S.topic='torp2/#';
+  saveSettings();fillSettings();toast('Settings saved');
+  if(mode==='mqtt')connect();
+});
+$('#btnDemo').addEventListener('click',startDemo);
+
+/* ---------- tabs + buttons ---------- */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.id==='tab-'+name));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  if(name==='log')renderLog();
+  if(name==='replay'){fillRepSel();requestAnimationFrame(drawReplay)}
+  if(name==='live')requestAnimationFrame(renderLive);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+$('#btnConnect').addEventListener('click',connect);
+$('#btnStop').addEventListener('click',()=>{stopAll();updateRec();toast('Stopped — saved in the Log tab')});
+$('#btnNew').addEventListener('click',()=>{if(cur)flush();const m=mode;resetSession();mode=m;toast('Started a new session')});
+function setWinBtns(){document.querySelectorAll('#winSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.w===+S.win))}
+document.querySelectorAll('#winSeg button').forEach(b=>b.addEventListener('click',()=>{S.win=+b.dataset.w;saveSettings();setWinBtns();renderLive()}));
+window.addEventListener('resize',()=>{renderLive();drawReplay()});
+
+/* ---------- start up ---------- */
+(async function(){
+  fillSettings();setWinBtns();setStatus();renderLive();
+  db=await openDB();
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  fillRepSel();
+})();
+})();
+</script>
+</body>
+</html>
