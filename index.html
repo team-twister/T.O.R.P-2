@@ -184,9 +184,9 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--y
 <section id="tab-settings" class="tab">
   <div class="card">
     <h2>Connection</h2>
-    <div class="muted small">From your HiveMQ Cloud cluster page. These are saved on this phone only — they are never in the website's code.</div>
-    <label>Cluster address</label>
-    <input data-k="url" placeholder="abc123.s1.eu.hivemq.cloud" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="muted small">From your EMQX Serverless deployment page. These are saved on this phone only — they are never in the website's code.</div>
+    <label>Broker address</label>
+    <input data-k="url" placeholder="abc123.ala.au-east-1.emqxsl.com" autocapitalize="off" autocorrect="off" spellcheck="false">
     <div class="two">
       <div><label>Username</label><input data-k="user" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <div><label>Password</label><input data-k="pass" type="password"></div>
@@ -342,7 +342,7 @@ function round(r){const o={t:r.t};if(r.wind!=null)o.wind=+r.wind.toFixed(1);if(r
 function flush(){const c=cur;cur=null;const r={t:c.sec*1000};for(const fl of FIELDS)if(c[fl]!=null)r[fl]=c[fl];addRow(round(r))}
 
 /* ---------- connecting ---------- */
-function brokerURL(u){u=(u||'').trim();if(!u)return'';if(!/^wss?:\/\//i.test(u)){u=u.replace(/^[a-z]+:\/\//i,'').replace(/\/.*$/,'');if(!/:\d+$/.test(u))u+=':8884';u='wss://'+u+'/mqtt'}return u}
+function brokerURL(u){u=(u||'').trim();if(!u)return'';if(!/^wss?:\/\//i.test(u)){u=u.replace(/^[a-z]+:\/\//i,'').replace(/\/.*$/,'');if(!/:\d+$/.test(u))u+=/emqx/i.test(u)?':8084':':8884';u='wss://'+u+'/mqtt'}return u}
 function stopAll(){
   if(client){try{client.end(true)}catch(e){}client=null}
   if(demoTimer){clearInterval(demoTimer);demoTimer=null}
@@ -351,7 +351,7 @@ function stopAll(){
 }
 function connect(){
   const url=brokerURL(S.url);
-  if(!url){toast('Add your HiveMQ cluster address in Settings first');showTab('settings');return}
+  if(!url){toast('Add your broker address in Settings first');showTab('settings');return}
   if(typeof mqtt==='undefined'){toast("Couldn't load the connection part of the site — check your internet and reload");return}
   stopAll();resetSession();
   mode='mqtt';connState='connecting';lastErr='';setStatus();
@@ -401,7 +401,7 @@ function setStatus(){
   $('#btnConnect').classList.toggle('hidden',mode!=='off');
   $('#btnStop').classList.toggle('hidden',mode==='off');
 }
-function friendlyErr(m){m=String(m||'');if(/not authori|bad user|password/i.test(m))return'Username or password is wrong (check Settings)';if(/websocket|ENOTFOUND|getaddrinfo/i.test(m))return'Couldn\'t reach the cluster — check the address in Settings';return m||'Retrying…'}
+function friendlyErr(m){m=String(m||'');if(/not authori|bad user|password/i.test(m))return'Username or password is wrong (check Settings)';if(/websocket|ENOTFOUND|getaddrinfo/i.test(m))return'Couldn\'t reach the cluster — check the broker address in Settings';return m||'Retrying…'}
 function updateRec(){const r=$('#rec');if(mode!=='off'&&session){r.className='rec on';r.textContent='● REC '+session.rows.toLocaleString()+' rows'}else{r.className='rec';r.textContent='● Not recording'}}
 
 let rq=false;function scheduleRender(){if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;renderLive()})}}
